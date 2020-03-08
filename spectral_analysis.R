@@ -47,15 +47,19 @@ ggplot(data = X) + labs(title="Weekly S&P 500 close (Training)", subtitle="Norma
 
 smoothed_close <- kernapply(fullSet$D_Close, kernel("daniell", c(m,m)))
 interp_smoothed_close <- approx(x=approx(range(1:(trainingSize+validationSize)),n=length(smoothed_close))$y, y=smoothed_close, n=(trainingSize+validationSize))
-XFuture <- data.frame(Week=fullSet$Week, Close=interp_smoothed_close$y)
+XAll <- data.frame(Week=fullSet$Week, Close=interp_smoothed_close$y)
 
 for (peak in specPeaks[,2]) {
-  XFuture <- cbind(XFuture, sin(2*pi*XFuture$Week/peak))
-  colnames(XFuture)[length(colnames(XFuture))] <- paste("sin", toString(peak), sep="", collapse="")
-  XFuture <- cbind(XFuture, cos(2*pi*XFuture$Week/peak))
-  colnames(XFuture)[length(colnames(XFuture))] <- paste("cos", toString(peak), sep="", collapse="")
+  XAll <- cbind(XAll, sin(2*pi*XAll$Week/peak))
+  colnames(XAll)[length(colnames(XAll))] <- paste("sin", toString(peak), sep="", collapse="")
+  XAll <- cbind(XAll, cos(2*pi*XAll$Week/peak))
+  colnames(XAll)[length(colnames(XAll))] <- paste("cos", toString(peak), sep="", collapse="")
 }
 
+XFuture <- XAll[(trainingSize + 1):(trainingSize + validationSize),]
 XFuture$pred <- predict(mod, newdata=XFuture)
-ggplot(data = XFuture) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and 6% APR growth, moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+ggplot(data = XFuture) + labs(title="Weekly S&P 500 close, (Validation)", subtitle="Normalized by variance and 6% APR growth, moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+
+XAll$pred <- predict(mod, newdata=XAll)
+ggplot(data = XAll) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and 6% APR growth, moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
 
