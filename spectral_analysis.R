@@ -1,13 +1,13 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
-offset <- 300
-trainingSize <- 1861
+offset <- 600
+trainingSize <- 1241
 validationSize <- 12
 training <- allData[(offset + 1):(offset + trainingSize),]
 validation <- allData[(offset + trainingSize + 1):(offset + trainingSize + validationSize),]
 fullSet <- rbind(training, validation)
-m = 24
+m = 12
 
 SP500_Growth_Adjusted_Weekly_Close <- training$D_Close
 
