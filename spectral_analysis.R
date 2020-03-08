@@ -1,13 +1,15 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
-allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 offset <- 2000
-trainingSize <- 386
-validationSize <- 129
+trainingSize <- 391
+validationSize <- 130
+m <- 7
+pCutoff <- 0.001
+
+allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 training <- allData[(offset + 1):(offset + trainingSize),]
 validation <- allData[(offset + trainingSize + 1):(offset + trainingSize + validationSize),]
 fullSet <- rbind(training, validation)
-m = 6
 
 SP500_Growth_Adjusted_Weekly_Close <- training$D_Close
 
@@ -42,7 +44,7 @@ coeffs <- summary(mod)$coefficients
 omitPredictors <- c()
 for (c in 1:nrow(coeffs)) {
   pvalue = coeffs[c,ncol(coeffs)]
-  if (is.na(pvalue) || pvalue > 0.01) {
+  if (is.na(pvalue) || pvalue > pCutoff) {
     omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
   }
 }
