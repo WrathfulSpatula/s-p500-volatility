@@ -2,8 +2,8 @@ setwd("/home/iamu/Github/s-p500-volatility")
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 offset <- 2000
-trainingSize <- 377
-validationSize <- 126
+trainingSize <- 386
+validationSize <- 129
 training <- allData[(offset + 1):(offset + trainingSize),]
 validation <- allData[(offset + trainingSize + 1):(offset + trainingSize + validationSize),]
 fullSet <- rbind(training, validation)
@@ -89,7 +89,7 @@ summary(mod)
 coeffs <- summary(mod)$coefficients
 
 library(ggplot2)
-ggplot(X, aes(x=Week, y=Close)) + geom_point()
+ggplot(X, aes(x=Week, y=Close)) +  geom_point()
 
 X$resid <- residuals(mod)
 X$pred <- predict(mod)
