@@ -1,4 +1,6 @@
-allData <- read.csv("/home/iamu/Documents/qrack_s&p500_ml/SP500_Weekly_Preprocessed.csv", header=TRUE)
+setwd("/home/iamu/Github/s-p500-volatility")
+
+allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 offset <- 300
 trainingSize <- 1861
 validationSize <- 12
@@ -6,13 +8,6 @@ training <- allData[(offset + 1):(offset + trainingSize),]
 validation <- allData[(offset + trainingSize + 1):(offset + trainingSize + validationSize),]
 fullSet <- rbind(training, validation)
 m = 24
-
-
-#phaseBasis <- fft(coordBasis[,2])
-#plot(phaseBasis)
-#plot(Re(phaseBasis))
-#plot(Im(phaseBasis))
-#phaseComponents <- data.frame(Freq=coordBasis[,1], Amp=Im(phaseBasis),Damp=Re(phaseBasis))
 
 SP500_Growth_Adjusted_Weekly_Close <- training$D_Close
 
@@ -25,14 +20,6 @@ topSpecs<-specDataFrame[order(-specDataFrame$spec),]
 require(pracma)
 specPeaks<-findpeaks(raw.spec$spec)
 
-#X <- data.frame(Week=coordBasis$Week,
-#                Close = coordBasis$D_Close,
-#                sin(2*pi*0.7587*coordBasis$Week/4809), #retirement age
-#                sin(2*pi*0.3547*coordBasis$Week/4809), #home ownership and raising a family
-#                sin(2*pi*0.1918*coordBasis$Week/4809), #saving for 4-year college
-#                sin(2*pi*0.3058*coordBasis$Week/4809)  #graduating 4 year college
-#)
-
 smoothed_close <- kernapply(training$D_Close, kernel("daniell", c(m,m)))
 interp_smoothed_close <- approx(x=approx(range(1:trainingSize),n=length(smoothed_close))$y, y=smoothed_close, n=trainingSize)
 
@@ -42,9 +29,9 @@ X <- data.frame(Week=training$Week,
 
 for (peak in specPeaks[,2]) {
   X <- cbind(X, sin(2*pi*X$Week/peak))
-  colnames(X)[length(colnames(X))] <- paste("cos", toString(peak), sep="", collapse="")
-  X <- cbind(X, cos(2*pi*X$Week/peak))
   colnames(X)[length(colnames(X))] <- paste("sin", toString(peak), sep="", collapse="")
+  X <- cbind(X, cos(2*pi*X$Week/peak))
+  colnames(X)[length(colnames(X))] <- paste("cos", toString(peak), sep="", collapse="")
 }
 
 
@@ -56,23 +43,19 @@ ggplot(X, aes(x=Week, y=Close)) + geom_point()
 
 X$resid <- residuals(mod)
 X$pred <- predict(mod)
-ggplot(data = X) + labs(title="Weekly S&P 500 close (Training)", subtitle="Normalized by variance and 6% APR growth, 30 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+ggplot(data = X) + labs(title="Weekly S&P 500 close (Training)", subtitle="Normalized by variance and 6% APR growth, 24 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
 
-smoothed_close <- kernapply(fullSet$D_Close, kernel("daniell", c(m,m)))
-interp_smoothed_close <- approx(x=approx(range(1:(trainingSize+validationSize)),n=length(smoothed_close))$y, y=smoothed_close, n=(trainingSize+validationSize))
-XFuture <- data.frame(Week=fullSet$Week, Close=interp_smoothed_close$y)
+smoothed_close <- kernapply(training$D_Close, kernel("daniell", c(m,m)))
+interp_smoothed_close <- approx(x=approx(range(1:trainingSize),n=length(smoothed_close))$y, y=smoothed_close, n=trainingSize)
+XFuture <- data.frame(Week=training$Week, Close=interp_smoothed_close$y)
 
 for (peak in specPeaks[,2]) {
   XFuture <- cbind(XFuture, sin(2*pi*XFuture$Week/peak))
-  colnames(XFuture)[length(colnames(XFuture))] <- paste("cos", toString(peak), sep="", collapse="")
-  XFuture <- cbind(XFuture, cos(2*pi*XFuture$Week/peak))
   colnames(XFuture)[length(colnames(XFuture))] <- paste("sin", toString(peak), sep="", collapse="")
+  XFuture <- cbind(XFuture, cos(2*pi*XFuture$Week/peak))
+  colnames(XFuture)[length(colnames(XFuture))] <- paste("cos", toString(peak), sep="", collapse="")
 }
 
 XFuture$pred <- predict(mod, newdata=XFuture)
-ggplot(data = XFuture) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and 6% APR growth, 30 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
-
-smoothed_close <- kernapply(validation$D_Close, kernel("daniell", c(m,m)))
-interp_smoothed_close <- approx(x=approx(range(1:validationSize),n=length(smoothed_close))$y, y=smoothed_close, n=validationSize)
-XFuture <- data.frame(Week=validation$Week, Close=interp_smoothed_close$y)
+ggplot(data = XFuture) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and 6% APR growth, 24 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
 
