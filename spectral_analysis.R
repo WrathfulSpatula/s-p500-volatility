@@ -1,9 +1,9 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
 offset <- 2000
-trainingSize <- 391
-validationSize <- 130
-m <- 7
+trainingSize <- 397
+validationSize <- 132
+m <- 7 #Avoid changing - smooths apparent volatility and couples to decay rate 
 pCutoff <- 0.001
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
