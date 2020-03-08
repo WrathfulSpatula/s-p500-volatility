@@ -1,10 +1,10 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
 offset <- 2000
-trainingSize <- 397
-validationSize <- 132
-m <- 7 #Avoid changing - smooths apparent volatility and couples to decay rate 
-pCutoff <- 0.001
+trainingSize <- 521
+validationSize <- 130
+m <- 5 #Avoid changing - smooths apparent volatility and couples to decay rate 
+pCutoff <- 0.01
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 training <- allData[(offset + 1):(offset + trainingSize),]
@@ -49,46 +49,58 @@ for (c in 1:nrow(coeffs)) {
   }
 }
 
-X <- data.frame(Week=training$Week,
-                Close = interp_smoothed_close$y
-)
+while (length(omitPredictors) > 0) {
 
-omitIndex <- 1
-nextOmit <- omitPredictors[omitIndex]
-for (peak in specPeaks[,2]) {
-  predictorName <- paste("sin", toString(peak), sep="", collapse="")
+  X <- data.frame(Week=training$Week,
+                  Close = interp_smoothed_close$y
+  )
   
-  if (predictorName == nextOmit) {
-    omitIndex <- omitIndex + 1
-    if (omitIndex <= length(omitPredictors)) {
-      nextOmit <- omitPredictors[omitIndex]
+  omitIndex <- 1
+  nextOmit <- omitPredictors[omitIndex]
+  for (peak in specPeaks[,2]) {
+    predictorName <- paste("sin", toString(peak), sep="", collapse="")
+    
+    if (predictorName == nextOmit) {
+      omitIndex <- omitIndex + 1
+      if (omitIndex <= length(omitPredictors)) {
+        nextOmit <- omitPredictors[omitIndex]
+      } else {
+        nextOmit <- ""
+      }
     } else {
-      nextOmit <- ""
+      X <- cbind(X, sin(2*pi*X$Week/peak))
+      colnames(X)[length(colnames(X))] <- predictorName
     }
-  } else {
-    X <- cbind(X, sin(2*pi*X$Week/peak))
-    colnames(X)[length(colnames(X))] <- predictorName
+    
+    predictorName <- paste("cos", toString(peak), sep="", collapse="")
+    
+    if (predictorName == nextOmit) {
+      omitIndex <- omitIndex + 1
+      if (omitIndex <= length(omitPredictors)) {
+        nextOmit <- omitPredictors[omitIndex]
+      } else {
+        nextOmit <- ""
+      }
+    } else {
+      X <- cbind(X, cos(2*pi*X$Week/peak))
+      colnames(X)[length(colnames(X))] <- predictorName
+    }
   }
   
-  predictorName <- paste("cos", toString(peak), sep="", collapse="")
+  mod <- lm(Close ~ . - Week, data = X)  # Regress Close on everything (but Week)
+  coeffs <- summary(mod)$coefficients
   
-  if (predictorName == nextOmit) {
-    omitIndex <- omitIndex + 1
-    if (omitIndex <= length(omitPredictors)) {
-      nextOmit <- omitPredictors[omitIndex]
-    } else {
-      nextOmit <- ""
+  omitPredictors <- c()
+  for (c in 1:nrow(coeffs)) {
+    pvalue = coeffs[c,ncol(coeffs)]
+    if (is.na(pvalue) || pvalue > pCutoff) {
+      omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
     }
-  } else {
-    X <- cbind(X, cos(2*pi*X$Week/peak))
-    colnames(X)[length(colnames(X))] <- predictorName
   }
+
 }
-
-
-mod <- lm(Close ~ . - Week, data = X)  # Regress Close on everything (but Week)
+  
 summary(mod)
-coeffs <- summary(mod)$coefficients
 
 library(ggplot2)
 ggplot(X, aes(x=Week, y=Close)) +  geom_point()
