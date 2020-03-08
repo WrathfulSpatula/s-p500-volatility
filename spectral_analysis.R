@@ -43,7 +43,7 @@ ggplot(X, aes(x=Week, y=Close)) + geom_point()
 
 X$resid <- residuals(mod)
 X$pred <- predict(mod)
-ggplot(data = X) + labs(title="Weekly S&P 500 close (Training)", subtitle="Normalized by variance and 6% APR growth, 24 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+ggplot(data = X) + labs(title="Weekly S&P 500 close (Training)", subtitle="Normalized by variance and 6% APR growth, moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
 
 smoothed_close <- kernapply(training$D_Close, kernel("daniell", c(m,m)))
 interp_smoothed_close <- approx(x=approx(range(1:trainingSize),n=length(smoothed_close))$y, y=smoothed_close, n=trainingSize)
@@ -57,5 +57,5 @@ for (peak in specPeaks[,2]) {
 }
 
 XFuture$pred <- predict(mod, newdata=XFuture)
-ggplot(data = XFuture) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and 6% APR growth, 24 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+ggplot(data = XFuture) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and 6% APR growth, moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
 
