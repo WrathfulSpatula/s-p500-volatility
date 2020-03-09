@@ -1,9 +1,9 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
-offset <- 2000
-trainingSize <- 521
-validationSize <- 130
-m <- 5 #Avoid changing - smooths apparent volatility and couples to decay rate 
+offset <- 800
+trainingSize <- 413
+validationSize <- 138
+m <- 6 #Avoid changing - smooths apparent volatility and couples to decay rate 
 pCutoff <- 0.01
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
@@ -49,7 +49,8 @@ for (c in 1:nrow(coeffs)) {
   }
 }
 
-while (length(omitPredictors) > 0) {
+newOmitCount <- length(omitPredictors)
+while (newOmitCount > 0) {
 
   X <- data.frame(Week=training$Week,
                   Close = interp_smoothed_close$y
@@ -90,11 +91,12 @@ while (length(omitPredictors) > 0) {
   mod <- lm(Close ~ . - Week, data = X)  # Regress Close on everything (but Week)
   coeffs <- summary(mod)$coefficients
   
-  omitPredictors <- c()
+  newOmitCount <- 0
   for (c in 1:nrow(coeffs)) {
     pvalue = coeffs[c,ncol(coeffs)]
     if (is.na(pvalue) || pvalue > pCutoff) {
       omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
+      newOmitCount <- newOmitCount + 1
     }
   }
 
