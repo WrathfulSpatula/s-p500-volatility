@@ -26,7 +26,7 @@ waveOffset <- 2*pi*0.25
 waveDrive <- 1.00140482691777 #Weekly, compounding to 7.6% APR
 wavePeriod2 <- wavePeriod / 2
 waveOffset2 <- waveOffset + pi / 4
-waveDrive2 <- 1.00140482691777 #Weekly, compounding to 15% APR
+waveDrive2 <- 1.00140482691777 #Weekly, compounding to 7.6% APR
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 training <- allData[(offset + 1):(offset + trainingSize),]
