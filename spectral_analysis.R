@@ -16,10 +16,10 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
 p0 <- 1500
-c0 <- 0.427
+c0 <- 0.15
 
-weeklyPeriodDamp <- function (wavePeriod) {
-  dampRate = 1 + c0 * log( wavePeriod / p0 )
+weeklyPeriodDamp <- function (wavePeriod1) {
+  dampRate = 1 + c0 * log( wavePeriod1 / p0 )
   if (dampRate < 0) {
     0
   } else {
@@ -31,8 +31,12 @@ weeklyPeriodDamp <- function (wavePeriod) {
 offset <- 0
 trainingSize <- 4809
 validationSize <- 0
-m <- 200 #Avoid changing - smooths apparent volatility and couples to decay rate 
-pCutoff <- 1
+m <- 280 #Avoid changing - smooths apparent volatility and couples to decay rate 
+pCutoff <- 10^-10
+
+wavePeriod1 <- 2500
+waveOffset1 <- 2*pi*0.25
+waveDrive1 <- 1.0 # No change; already preprocessed out
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 training <- allData[(offset + 1):(offset + trainingSize),]
@@ -56,6 +60,9 @@ interp_smoothed_close <- approx(x=approx(seq(from=(offset+1), to=(offset+trainin
 X <- data.frame(Week=training$Week,
                 Close = interp_smoothed_close$y
 )
+
+X <- cbind(X, sin(2*pi*X$Week/wavePeriod1 + waveOffset1))
+colnames(X)[length(colnames(X))] <- paste("sin", toString(wavePeriod1), sep="", collapse="")
 
 for (peak in specPeaks[,2]) {
   damping <- weeklyPeriodDamp(peak)
