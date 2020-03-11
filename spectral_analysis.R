@@ -34,13 +34,6 @@ validationSize <- 0
 m <- 200 #Avoid changing - smooths apparent volatility and couples to decay rate 
 pCutoff <- 1
 
-wavePeriod <- 2500
-waveOffset <- 2*pi*0.25
-waveDrive <- 1.0 # 1.0 is no change; already preprocessed out
-wavePeriod2 <- wavePeriod / 2
-waveOffset2 <- waveOffset + pi / 4
-waveDrive2 <- 1.0
-
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 training <- allData[(offset + 1):(offset + trainingSize),]
 validation <- allData[(offset + trainingSize + 1):(offset + trainingSize + validationSize),]
@@ -64,55 +57,64 @@ X <- data.frame(Week=training$Week,
                 Close = interp_smoothed_close$y
 )
 
-#for (peak in specPeaks[,2]) {
-#  damping <- weeklyPeriodDamp(peak)
-#  X <- cbind( X, damping ^ X$Week * sin( 2 * pi * X$Week/peak ) )
-#  colnames(X)[length(colnames(X))] <- paste("sin", toString(peak), sep="", collapse="")
-#  X <- cbind( X, damping ^ X$Week * cos( 2 * pi * X$Week/peak ) )
-#  colnames(X)[length(colnames(X))] <- paste("cos", toString(peak), sep="", collapse="")
-#}
-
-X <- cbind(X, waveDrive^X$Week * sin(2*pi*X$Week/wavePeriod + waveOffset))
-colnames(X)[length(colnames(X))] <- paste("sin", toString(wavePeriod), sep="", collapse="")
-X <- cbind(X, waveDrive2^X$Week * sin(2*pi*X$Week/wavePeriod2 + waveOffset2))
-colnames(X)[length(colnames(X))] <- paste("sin", toString(wavePeriod2), sep="", collapse="")
+for (peak in specPeaks[,2]) {
+  damping <- weeklyPeriodDamp(peak)
+  X <- cbind( X, damping ^ X$Week * sin( 2 * pi * X$Week/peak ) )
+  colnames(X)[length(colnames(X))] <- paste("sin", toString(peak), sep="", collapse="")
+  X <- cbind( X, damping ^ X$Week * cos( 2 * pi * X$Week/peak ) )
+  colnames(X)[length(colnames(X))] <- paste("cos", toString(peak), sep="", collapse="")
+}
 
 mod <- lm(Close ~ . - Week, data = X)  # Regress Close on everything (but Week)
 summary(mod)
 coeffs <- summary(mod)$coefficients
 
-#omitPredictors <- c()
-#for (c in 1:nrow(coeffs)) {
-#  pvalue = coeffs[c,ncol(coeffs)]
-#  if (is.na(pvalue) || pvalue > pCutoff) {
-#    omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
-#  }
-#}
+omitPredictors <- c()
+for (c in 1:nrow(coeffs)) {
+  pvalue = coeffs[c,ncol(coeffs)]
+  if (is.na(pvalue) || pvalue > pCutoff) {
+    omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
+  }
+}
 
-#newOmitCount <- length(omitPredictors)
-#while (newOmitCount > 0) {
-
-#  X <- data.frame(Week=training$Week,
-#                  Close = interp_smoothed_close$y
-#  )
+newOmitCount <- length(omitPredictors)
+while (newOmitCount > 0) {
   
-#  for (peak in specPeaks[,2]) {
-#    damping <- weeklyPeriodDamp(peak)
-#  
-#    predictorName <- paste("sin", toString(peak), sep="", collapse="")
-#  
-#    if (!(predictorName %in% omitPredictors)) {
-#      X <- cbind( X, damping ^ X$Week * sin( 2 * pi * X$Week/peak ) )
-#      colnames(X)[length(colnames(X))] <- predictorName
-#    }
-#  
-#    predictorName <- paste("cos", toString(peak), sep="", collapse="")
+  X <- data.frame(Week=training$Week,
+                  Close = interp_smoothed_close$y
+  )
   
-#    if (!(predictorName %in% omitPredictors)) {
-#      X <- cbind( X, damping ^ X$Week * cos( 2 * pi * X$Week/peak ) )
-#      colnames(X)[length(colnames(X))] <- predictorName
-#  }
-#}
+  for (peak in specPeaks[,2]) {
+    damping <- weeklyPeriodDamp(peak)
+    
+    predictorName <- paste("sin", toString(peak), sep="", collapse="")
+    
+    if (!(predictorName %in% omitPredictors)) {
+      X <- cbind( X, damping ^ X$Week * sin( 2 * pi * X$Week/peak ) )
+      colnames(X)[length(colnames(X))] <- predictorName
+    }
+    
+    predictorName <- paste("cos", toString(peak), sep="", collapse="")
+    
+    if (!(predictorName %in% omitPredictors)) {
+      X <- cbind( X, damping ^ X$Week * cos( 2 * pi * X$Week/peak ) )
+      colnames(X)[length(colnames(X))] <- predictorName
+    }
+  }
+  
+  mod <- lm(Close ~ . - Week, data = X)  # Regress Close on everything (but Week)
+  coeffs <- summary(mod)$coefficients
+  
+  newOmitCount <- 0
+  for (c in 1:nrow(coeffs)) {
+    pvalue = coeffs[c,ncol(coeffs)]
+    if (is.na(pvalue) || pvalue > pCutoff) {
+      omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
+      newOmitCount <- newOmitCount + 1
+    }
+  }
+  
+}
   
 summary(mod)
 
