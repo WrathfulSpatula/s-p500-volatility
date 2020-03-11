@@ -1,15 +1,22 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
-p0 <- 2700
-c0 <- 0.1872
+p0 <- 1500
+c0 <- 0.427
 
-weeklyPeriodDamp <- function (wavePeriod) { ( 1 + ( c0 * log( wavePeriod / p0 ) ) ) ^ ( 1 / 52.1429 ) }
+weeklyPeriodDamp <- function (wavePeriod) {
+  dampRate = 1 + c0 * log( wavePeriod / p0 )
+  if (dampRate < 0) {
+    0
+  } else {
+    dampRate ^ ( 1 / 52.1429 )
+  }
+}
 
-offset <- 1500
-trainingSize <- 1372
+offset <- 1100
+trainingSize <- 1829
 validationSize <- 457
-m <- 60 #Avoid changing - smooths apparent volatility and couples to decay rate 
-pCutoff <- 0.1
+m <- 120 #Avoid changing - smooths apparent volatility and couples to decay rate 
+pCutoff <- 10^-13
 
 allData <- read.csv("SP500_Weekly_Preprocessed.csv", header=TRUE)
 training <- allData[(offset + 1):(offset + trainingSize),]
