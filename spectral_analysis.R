@@ -3,7 +3,7 @@ setwd("/home/iamu/Github/s-p500-volatility")
 p0 <- 1170
 c0 <- 0.14
 
-weeklyPeriodDamp <- function (wavePeriod) { ( 1 + ( atan( c0 * log( wavePeriod / p0 ) ) / pi ) ) ^ ( 1 / 52.1429 ) }
+weeklyPeriodDamp <- function (wavePeriod) { ( 1 + ( c0 * log( wavePeriod / p0 ) ) ) ^ ( 1 / 52.1429 ) }
 
 offset <- 1300
 trainingSize <- 413
