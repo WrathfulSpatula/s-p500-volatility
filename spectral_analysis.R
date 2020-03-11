@@ -1,5 +1,10 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
+p0 <- 2500
+c0 <- 1/2
+
+weeklyPeriodDamp <- function (wavePeriod) { ( 1 + ( atan( c0 * log( wavePeriod / p0 ) ) / pi ) ) ^ ( 1 / 52.1429 ) }
+
 offset <- 1300
 trainingSize <- 413
 validationSize <- 138
@@ -30,9 +35,10 @@ X <- data.frame(Week=training$Week,
 )
 
 for (peak in specPeaks[,2]) {
-  X <- cbind(X, sin(2*pi*X$Week/peak))
+  damping <- weeklyPeriodDamp(peak)
+  X <- cbind( X, damping ^ X$Week * sin( 2 * pi * X$Week/peak ) )
   colnames(X)[length(colnames(X))] <- paste("sin", toString(peak), sep="", collapse="")
-  X <- cbind(X, cos(2*pi*X$Week/peak))
+  X <- cbind( X, damping ^ X$Week * cos( 2 * pi * X$Week/peak ) )
   colnames(X)[length(colnames(X))] <- paste("cos", toString(peak), sep="", collapse="")
 }
 
@@ -57,17 +63,19 @@ while (newOmitCount > 0) {
   )
   
   for (peak in specPeaks[,2]) {
+    damping <- weeklyPeriodDamp(peak)
+
     predictorName <- paste("sin", toString(peak), sep="", collapse="")
     
     if (!(predictorName %in% omitPredictors)) {
-      X <- cbind(X, sin(2*pi*X$Week/peak))
+      X <- cbind( X, damping ^ X$Week * sin( 2 * pi * X$Week/peak ) )
       colnames(X)[length(colnames(X))] <- predictorName
     }
     
     predictorName <- paste("cos", toString(peak), sep="", collapse="")
     
     if (!(predictorName %in% omitPredictors)) {
-      X <- cbind(X, cos(2*pi*X$Week/peak))
+      X <- cbind( X, damping ^ X$Week * cos( 2 * pi * X$Week/peak ) )
       colnames(X)[length(colnames(X))] <- predictorName
     }
   }
@@ -100,9 +108,10 @@ interp_smoothed_close <- approx(x=approx(range((offset+1):(offset+trainingSize+v
 XAll <- data.frame(Week=fullSet$Week, Close=interp_smoothed_close$y)
 
 for (peak in specPeaks[,2]) {
-  XAll <- cbind(XAll, sin(2*pi*XAll$Week/peak))
+  damping <- weeklyPeriodDamp(peak)
+  XAll <- cbind( XAll, damping ^ XAll$Week * sin( 2 * pi * XAll$Week/peak ) )
   colnames(XAll)[length(colnames(XAll))] <- paste("sin", toString(peak), sep="", collapse="")
-  XAll <- cbind(XAll, cos(2*pi*XAll$Week/peak))
+  XAll <- cbind( XAll, damping ^ XAll$Week * cos( 2 * pi * XAll$Week/peak ) )
   colnames(XAll)[length(colnames(XAll))] <- paste("cos", toString(peak), sep="", collapse="")
 }
 
