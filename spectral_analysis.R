@@ -15,8 +15,8 @@
 
 setwd("/home/iamu/Github/s-p500-volatility")
 
-p0 <- 1500
-c0 <- 0.15
+p0 <- 2500
+c0 <- 1/9
 
 weeklyPeriodDamp <- function (wavePeriod1) {
   dampRate = 1 + c0 * log( wavePeriod1 / p0 )
@@ -28,11 +28,11 @@ weeklyPeriodDamp <- function (wavePeriod1) {
 }
 
 
-offset <- 0
-trainingSize <- 4809
-validationSize <- 0
-m <- 280 #Avoid changing - smooths apparent volatility and couples to decay rate 
-pCutoff <- 10^-10
+offset <- 500
+trainingSize <- 2873
+validationSize <- 1436
+m <- 140 #Avoid changing - smooths apparent volatility and couples to decay rate
+pCutoff <- 1
 
 wavePeriod1 <- 2500
 waveOffset1 <- 2*pi*0.25
@@ -91,6 +91,9 @@ while (newOmitCount > 0) {
                   Close = interp_smoothed_close$y
   )
   
+  X <- cbind(X, sin(2*pi*X$Week/wavePeriod1 + waveOffset1))
+  colnames(X)[length(colnames(X))] <- paste("sin", toString(wavePeriod1), sep="", collapse="")
+
   for (peak in specPeaks[,2]) {
     damping <- weeklyPeriodDamp(peak)
     
@@ -133,23 +136,26 @@ X$pred <- predict(mod)
 
 ggplot(data = X) + labs(title=paste("Weekly S&P 500 close (Training, R^2=", toString(summary(mod)$r.squared), ")", sep="", collapse=""), subtitle="Normalized by variance and APR volatility amplification, 280 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
 
-#smoothed_close <- kernapply(fullSet$D_Close, kernel("daniell", c(m,m)))
-#interp_smoothed_close <- approx(x=approx(range((offset+1):(offset+trainingSize+validationSize)),n=length(smoothed_close))$y, y=smoothed_close, n=(trainingSize+validationSize))
-#XAll <- data.frame(Week=fullSet$Week, Close=interp_smoothed_close$y)
+smoothed_close <- kernapply(fullSet$D_Close, kernel("daniell", c(m,m)))
+interp_smoothed_close <- approx(x=approx(range((offset+1):(offset+trainingSize+validationSize)),n=length(smoothed_close))$y, y=smoothed_close, n=(trainingSize+validationSize))
+XAll <- data.frame(Week=fullSet$Week, Close=interp_smoothed_close$y)
 
-#for (peak in specPeaks[,2]) {
-#  damping <- weeklyPeriodDamp(peak)
-#  XAll <- cbind( XAll, damping ^ XAll$Week * sin( 2 * pi * XAll$Week/peak ) )
-#  colnames(XAll)[length(colnames(XAll))] <- paste("sin", toString(peak), sep="", collapse="")
-#  XAll <- cbind( XAll, damping ^ XAll$Week * cos( 2 * pi * XAll$Week/peak ) )
-#  colnames(XAll)[length(colnames(XAll))] <- paste("cos", toString(peak), sep="", collapse="")
-#}
+XAll <- cbind(XAll, sin(2*pi*XAll$Week/wavePeriod1 + waveOffset1))
+colnames(XAll)[length(colnames(XAll))] <- paste("sin", toString(wavePeriod1), sep="", collapse="")
 
-#XFuture <- XAll[(trainingSize + 1):(trainingSize + validationSize),]
-#XFuture$pred <- predict(mod, newdata=XFuture)
-#SS.total <- sum((XFuture$Close - mean(XFuture$Close))^2)
-#SS.regression <- sum((XFuture$pred- mean(XFuture$Close))^2)
-#ggplot(data = XFuture) + labs(title=paste("Weekly S&P 500 close, (Validation, R^2=", toString(1-summary(mod)$r.squared), ")", sep="", collapse=""), subtitle="Normalized by variance and ~30% APR volatility decay, 6 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+for (peak in specPeaks[,2]) {
+  damping <- weeklyPeriodDamp(peak)
+  XAll <- cbind( XAll, damping ^ XAll$Week * sin( 2 * pi * XAll$Week/peak ) )
+  colnames(XAll)[length(colnames(XAll))] <- paste("sin", toString(peak), sep="", collapse="")
+  XAll <- cbind( XAll, damping ^ XAll$Week * cos( 2 * pi * XAll$Week/peak ) )
+  colnames(XAll)[length(colnames(XAll))] <- paste("cos", toString(peak), sep="", collapse="")
+}
 
-#XAll$pred <- predict(mod, newdata=XAll)
-#ggplot(data = XAll) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and ~30% volatility decay, 6 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+XFuture <- XAll[(trainingSize + 1):(trainingSize + validationSize),]
+XFuture$pred <- predict(mod, newdata=XFuture)
+SS.total <- sum((XFuture$Close - mean(XFuture$Close))^2)
+SS.regression <- sum((XFuture$pred- mean(XFuture$Close))^2)
+ggplot(data = XFuture) + labs(title=paste("Weekly S&P 500 close, (Validation, R^2=", toString(1-summary(mod)$r.squared), ")", sep="", collapse=""), subtitle="Normalized by variance and ~30% APR volatility decay, 6 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
+
+XAll$pred <- predict(mod, newdata=XAll)
+ggplot(data = XAll) + labs(title="Weekly S&P 500 close, (Full Set)", subtitle="Normalized by variance and ~30% volatility decay, 6 week moving average smoothed") + geom_line(aes(x = Week, y = Close, color="Observed")) + geom_line(aes(x = Week, y = pred, color="Predicted"))
