@@ -1,7 +1,7 @@
 setwd("/home/iamu/Github/s-p500-volatility")
 
-m <- 120 #Avoid changing - smooths apparent volatility and couples to decay rate 
-pCutoff <- 10^-13
+m <- 120 #Avoid changing - smooths apparent volatility and couples to decay rate
+pCutoff <- 10^-3
 
 p0 <- 2500
 c0 <- 2 * m / p0
@@ -56,7 +56,7 @@ summary(mod)
 coeffs <- summary(mod)$coefficients
 
 omitPredictors <- c()
-for (c in 1:nrow(coeffs)) {
+for (c in 2:nrow(coeffs)) {
   pvalue = coeffs[c,ncol(coeffs)]
   if (is.na(pvalue) || pvalue > pCutoff) {
     omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
@@ -92,7 +92,7 @@ while (newOmitCount > 0) {
   coeffs <- summary(mod)$coefficients
   
   newOmitCount <- 0
-  for (c in 1:nrow(coeffs)) {
+  for (c in 2:nrow(coeffs)) {
     pvalue = coeffs[c,ncol(coeffs)]
     if (is.na(pvalue) || pvalue > pCutoff) {
       omitPredictors <- append(omitPredictors, rownames(coeffs)[c])
